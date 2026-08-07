@@ -12,6 +12,11 @@ Write-Host "Personal Reflection Bridge - setup"
 Write-Host "==================================="
 Write-Host ""
 
+# Files extracted from a downloaded ZIP carry Windows' "mark of the web" and can
+# trigger a SmartScreen prompt the first time something in here gets executed.
+# Strip that flag proactively so nothing pops up later.
+Get-ChildItem -Path $root -Recurse -File -ErrorAction SilentlyContinue | Unblock-File -ErrorAction SilentlyContinue
+
 if (-not (Test-Path $nodeExe)) {
     Write-Host "Krok 1/2: pobieram lokalny silnik Node.js (jednorazowo, okolo 50 MB)..."
     New-Item -ItemType Directory -Force -Path $nodeDir | Out-Null
@@ -36,6 +41,7 @@ if (-not (Test-Path $nodeExe)) {
         exit 1
     }
     Copy-Item $extractedNodeExe.FullName -Destination $nodeExe -Force
+    Unblock-File -Path $nodeExe -ErrorAction SilentlyContinue
 
     Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
     Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
