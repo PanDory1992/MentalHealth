@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "bridge_version": "0.2.0",
+  "storage": {
+    "provider": "local-markdown",
+    "data_directory": "data",
+    "sessions_directory": "data/sessions",
+    "index_file": "data/index.json"
+  },
+  "categories": [
+    "Praca",
+    "Zdrowie",
+    "Relacje",
+    "Ja/Emocje",
+    "Inne"
+  ]
+}
