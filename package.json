@@ -1,0 +1,14 @@
+{
+  "name": "personal-reflection-bridge",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Local-first personal reflection store and MCP bridge. Zero external dependencies.",
+  "scripts": {
+    "start": "node server.mjs",
+    "rebuild-index": "node scripts/rebuild-index.mjs",
+    "migrate-legacy-ids": "node scripts/migrate-legacy-ids.mjs",
+    "normalize-dates-to-local": "node scripts/normalize-dates-to-local.mjs",
+    "test": "node --test"
+  }
+}
