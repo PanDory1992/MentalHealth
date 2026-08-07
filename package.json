@@ -9,6 +9,7 @@
     "rebuild-index": "node scripts/rebuild-index.mjs",
     "migrate-legacy-ids": "node scripts/migrate-legacy-ids.mjs",
     "normalize-dates-to-local": "node scripts/normalize-dates-to-local.mjs",
-    "test": "node --test"
+    "maintain": "node scripts/maintain.mjs",
+    "test": "node --test test/session-store.test.mjs test/server.test.mjs test/maintain.test.mjs"
   }
 }
