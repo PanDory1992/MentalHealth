@@ -14,12 +14,13 @@ import { spawn } from "node:child_process";
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(testDir, "..");
 
-function makeIsolatedServer() {
+function makeIsolatedServer(extraFiles = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reflection-server-"));
   fs.copyFileSync(path.join(repoRoot, "server.mjs"), path.join(dir, "server.mjs"));
   fs.copyFileSync(path.join(repoRoot, "reflection-contract.json"), path.join(dir, "reflection-contract.json"));
   fs.mkdirSync(path.join(dir, "src"));
   fs.copyFileSync(path.join(repoRoot, "src", "session-store.mjs"), path.join(dir, "src", "session-store.mjs"));
+  for (const [name, content] of Object.entries(extraFiles)) fs.writeFileSync(path.join(dir, name), content, "utf8");
   const child = spawn(process.execPath, ["server.mjs"], { cwd: dir, stdio: ["pipe", "pipe", "pipe"] });
   return { child, dir };
 }
@@ -90,7 +91,23 @@ test("initialize and tools/list over NDJSON framing", async () => {
     sendNdjson(child, { jsonrpc: "2.0", id: 2, method: "tools/list" });
     const list = await next();
     const names = list.result.tools.map((tool) => tool.name);
-    assert.deepEqual(names, ["list_sessions", "get_session", "search_sessions", "create_session", "update_session"]);
+    assert.deepEqual(names, ["get_workspace_instructions", "list_sessions", "get_session", "search_sessions", "create_session", "update_session"]);
+  } finally {
+    cleanup(child, dir);
+  }
+});
+
+test("get_workspace_instructions reads CLAUDE.md/GLOSY.md/WZORCE.md/DZIENNIK.md and returns null for missing ones, plus a real server_time - this is the only way Chat mode (no folder-injection like Cowork) ever sees these files", async () => {
+  const { child, dir } = makeIsolatedServer({ "CLAUDE.md": "# Test instructions\n\nBądź zwięzły." });
+  const next = createReader(child);
+  try {
+    sendNdjson(child, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "get_workspace_instructions", arguments: {} } });
+    const result = JSON.parse((await next()).result.content[0].text);
+    assert.equal(result.instructions["CLAUDE.md"], "# Test instructions\n\nBądź zwięzły.");
+    assert.equal(result.instructions["GLOSY.md"], null);
+    assert.equal(result.instructions["WZORCE.md"], null);
+    assert.equal(result.instructions["DZIENNIK.md"], null);
+    assert.match(result.server_time, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
   } finally {
     cleanup(child, dir);
   }
