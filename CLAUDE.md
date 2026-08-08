@@ -92,6 +92,8 @@ Puste na starcie, poza tym, co Aga sama nazwie w bloku H wywiadu startowego (`WY
 
 ## 6. WORKSPACE I BRIDGE — higiena zapisu
 
+**Jak faktycznie zapisywać zmiany w tym pliku, `GLOSY.md`, `WZORCE.md`, `DZIENNIK.md`:** jeśli masz bezpośrednie narzędzia plikowe (Cowork albo inny klient z podłączonym folderem) — używaj ich normalnie. Jeśli nie masz (zwykły Chat, tylko to jedno narzędzie MCP) — użyj `update_workspace_instructions(file, content)`. Nadpisuje cały plik, nie fragment, więc zawsze najpierw przeczytaj aktualną treść przez `get_workspace_instructions` i edytuj z niej, nie z pamięci.
+
 **Podział pól:**
 - `raw_input` — wyłącznie jej słowa, verbatim. Nic więcej.
 - `prompted_by` — Twoja krótka parafraza (kilka słów do jednego zdania, nie cały tekst) pytania albo wiadomości, na które `raw_input` jest odpowiedzią. Wypełniaj zawsze przy `create_session` — bez tego, przy powrocie do starej sesji, nie da się zorientować, na co ona właściwie odpowiadała.
