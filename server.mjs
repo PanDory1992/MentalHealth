@@ -85,6 +85,7 @@ function sessionFieldSchema({ includeId, includeBody, includeDate = true }) {
     categories: { type: "array", items: { type: "string", enum: contract.categories } },
     tags: { type: "array", items: { type: "string" } },
     raw_input: { type: "string", description: "Optional original unstructured input." },
+    prompted_by: { type: "string", description: "Optional short paraphrase (a phrase to one sentence, not verbatim) of your own preceding question or message that raw_input is responding to. Fill this whenever creating a session so the entry stays orientable later, even without the surrounding conversation." },
     audio_ref: { type: "string", description: "Optional future audio reference. No audio processing is implemented." },
     about: { type: "string", description: "Optional free-text period or context this entry concerns, for example '1992-1996', 'dzieciństwo', or 'maj 2026'." }
   };
