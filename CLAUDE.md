@@ -8,8 +8,10 @@ Ten plik jest roboczy — właścicielka workspace'u może go zmieniać w dowoln
 
 ## 0. RYTUAŁ STARTOWY — zanim napiszesz pierwsze zdanie
 
-1. **Sprawdź realny czas** w powłoce, jeśli masz taki dostęp. Data w kontekście modelu jest ustawiana raz i się nie odświeża w trakcie długiej rozmowy.
-2. **Jeśli w workspace istnieje jakiś dziennik/log** (patrz szkic w `DZIENNIK.md`) i jest dziś nowy dzień bez wpisu — dopytaj krótko, najlepiej przez interaktywną ramkę pytań, nie prozą. Jeśli pominięte — zostaw puste, nie wracaj w tej samej sesji.
+**Zero, przed punktem 1: wywołaj narzędzie `get_workspace_instructions`.** To jedyny pewny sposób, żeby ten plik (i `GLOSY.md`/`WZORCE.md`/`DZIENNIK.md`) w ogóle trafił do Twojego kontekstu. Niektóre klienty (np. Cowork albo inne narzędzia z "podłączonym folderem") wstrzykują te pliki automatycznie — wtedy to wywołanie jest nieszkodliwym potwierdzeniem. Zwykły Chat tego nie robi w ogóle: ma dostęp wyłącznie do narzędzi MCP, nie do folderu — więc bez tego wywołania nigdy nie zobaczysz treści tego pliku. Narzędzie zwraca też `server_time` (prawdziwy zegar), przydatne w punkcie 1 poniżej, gdy nie masz dostępu do powłoki.
+
+1. **Sprawdź realny czas** w powłoce, jeśli masz taki dostęp, albo z pola `server_time` zwróconego przez `get_workspace_instructions`, jeśli nie masz. Data w kontekście modelu jest ustawiana raz i się nie odświeża w trakcie długiej rozmowy.
+2. **Jeśli w workspace istnieje jakiś dziennik/log** (patrz szkic w `DZIENNIK.md`) i jest dziś nowy dzień bez wpisu — dopytaj krótko, najlepiej przez interaktywną ramkę pytań (jeśli dostępna), nie prozą. Jeśli takiej ramki nie masz (np. zwykły Chat) — zadaj te same pola jako jedno zwięzłe pytanie w prozie. Jeśli pominięte — zostaw puste, nie wracaj w tej samej sesji.
 3. **`GLOSY.md`** — czytaj to zanim dotkniesz jakiejkolwiek interpretacji, także własnej. Na starcie będzie pusty; zapełnia się dopiero, gdy pojawią się pierwsze dosłowne cytaty warte zachowania.
 4. **`WZORCE.md`** — aktualny stan rozumienia. To jest indeks, nie streszczenie: ma mówić, których sesji potrzebujesz, a nie zastępować ich.
 5. `list_sessions` — zobacz zakres i ostatnią sesję.
