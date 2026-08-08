@@ -136,6 +136,35 @@ test("update_workspace_instructions writes CLAUDE.md/GLOSY.md/WZORCE.md/DZIENNIK
   }
 });
 
+test("get_workspace_instructions also returns WYWIAD-STARTOWY.md read-only (present -> its content, absent -> null), and update_workspace_instructions refuses to write it - this file is a fixed question bank a workspace's own CLAUDE.md may instruct Claude to read, and with no other filesystem tool available (i.e. not Cowork), get_workspace_instructions is the only way to ever see it", async () => {
+  const { child, dir } = makeIsolatedServer({ "WYWIAD-STARTOWY.md": "# Wywiad startowy\n\nA1. Pytanie testowe." });
+  const next = createReader(child);
+  try {
+    sendNdjson(child, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "get_workspace_instructions", arguments: {} } });
+    const withFile = JSON.parse((await next()).result.content[0].text);
+    assert.equal(withFile.instructions["WYWIAD-STARTOWY.md"], "# Wywiad startowy\n\nA1. Pytanie testowe.");
+
+    sendNdjson(child, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "update_workspace_instructions", arguments: { file: "WYWIAD-STARTOWY.md", content: "cokolwiek" } } });
+    const rejected = await next();
+    assert.match(rejected.error.message, /file must be one of/);
+    assert.equal(fs.readFileSync(path.join(dir, "WYWIAD-STARTOWY.md"), "utf8"), "# Wywiad startowy\n\nA1. Pytanie testowe.");
+  } finally {
+    cleanup(child, dir);
+  }
+});
+
+test("get_workspace_instructions returns null for WYWIAD-STARTOWY.md when it does not exist on disk (e.g. Miki's own workspace, which has no such file)", async () => {
+  const { child, dir } = makeIsolatedServer();
+  const next = createReader(child);
+  try {
+    sendNdjson(child, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "get_workspace_instructions", arguments: {} } });
+    const result = JSON.parse((await next()).result.content[0].text);
+    assert.equal(result.instructions["WYWIAD-STARTOWY.md"], null);
+  } finally {
+    cleanup(child, dir);
+  }
+});
+
 test("create_session/get_session round-trip, and error responses for a missing session and an unsupported method", async () => {
   const { child, dir } = makeIsolatedServer();
   const next = createReader(child);
