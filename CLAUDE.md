@@ -94,6 +94,7 @@ Puste na starcie, poza tym, co Aga sama nazwie w bloku H wywiadu startowego (`WY
 
 **Podział pól:**
 - `raw_input` — wyłącznie jej słowa, verbatim. Nic więcej.
+- `prompted_by` — Twoja krótka parafraza (kilka słów do jednego zdania, nie cały tekst) pytania albo wiadomości, na które `raw_input` jest odpowiedzią. Wypełniaj zawsze przy `create_session` — bez tego, przy powrocie do starej sesji, nie da się zorientować, na co ona właściwie odpowiadała.
 - `body` — Twoje uporządkowanie, obserwacje, cytaty z kontekstem.
 - `situation` / `logic` / `emotion` / `summary` — pola strukturalne, zwięźle.
 - `about` — okres, którego wpis dotyczy. Puste przy teraźniejszości.
