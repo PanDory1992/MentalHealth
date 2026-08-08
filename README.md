@@ -10,48 +10,112 @@ intentionally blank scaffolding — they describe *how* the workspace should ope
 in it. Real content is meant to grow only through your own conversations, never by copying someone
 else's.
 
-## Instrukcja po polsku (Windows, bez instalowania czegokolwiek)
+## Instrukcja po polsku
+
+Są dwa sposoby instalacji. **Zacznij od Metody A** — to obecny, sankcjonowany przez Claude Desktop
+sposób instalowania lokalnych serwerów MCP (tzw. Desktop Extension), prostszy i mniej podatny na
+błędy niż ręczna edycja configu. Metoda B zostaje jako zapasowa, dla starszych wersji Claude
+Desktop, które nie mają jeszcze sekcji Extensions.
+
+### Metoda A: plik `.mcpb` (zalecana)
+
+1. Na tej stronie otwórz **`personal-reflection-bridge.mcpb`** i kliknij **Download** (albo
+   pobierz bezpośrednio: `Code → Download ZIP` też zadziała, plik `.mcpb` jest w środku).
+2. Otwórz Claude Desktop. W lewym pasku bocznym: **Settings → Extensions → Advanced settings**,
+   sekcja **Extension Developer**, przycisk **"Install Extension…"**. Wskaż pobrany plik
+   `personal-reflection-bridge.mcpb`.
+   Alternatywnie: samo dwuklik na pliku `.mcpb`, albo przeciągnięcie go na okno Claude Desktop,
+   też otwiera ten sam ekran instalacji.
+3. Zobaczysz ekran instalacji z opisem wtyczki i jednym polem do wypełnienia: **"Folder na dane
+   dziennika"**. Wybierz zwykły folder na dysku, w którym mają się zapisywać Twoje sesje — domyślnie
+   proponowany jest podfolder w Dokumentach, możesz go zmienić. To ma świadomie nie być folder samej
+   wtyczki — dzięki temu Twoje dane są w miejscu, które sama wybierasz i które łatwo znaleźć/zbackupować.
+4. Kliknij **Install**. Wtyczka pojawi się na liście w Settings → Extensions jako
+   "Personal Reflection Bridge" — od razu aktywna, bez restartu Claude Desktop.
+5. **Załóż Projekt** (Claude Desktop → Projects → Create project, dowolna nazwa) i w jego
+   ustawieniach, w polu **Custom instructions**, wklej treść z pliku `PROJECT-CUSTOM-INSTRUCTIONS.md`
+   z tego repo. Bez tego kroku wtyczka nadal działa technicznie, ale model w zwykłej rozmowie nie ma
+   pewnego sposobu, żeby wiedzieć, że ma czytać `CLAUDE.md` na starcie — Projekt daje mu ten sam
+   poziom zaufania do tych plików, jaki ma system typu Cowork z podłączonym folderem. (Nie mieliśmy
+   jak sprawdzić z zewnątrz, czy sama instalacja przez Extensions to już poprawia — Projekt jest
+   więc nadal zalecany jako pewniejsza droga, dopóki ktoś tego nie zweryfikuje w praktyce.)
+6. **Każdą nową sesję zaczynaj z poziomu tego Projektu** — "New chat" otwarty wewnątrz Projektu,
+   nie ten ogólny z głównego paska bocznego.
+7. **Ważne:** to jest pusty silnik. Nie wklejaj tu niczyich gotowych wpisów. Niech `CLAUDE.md` i
+   reszta zapełnią się przez rozmowę z Claude, od zera.
+
+Wymagania: Windows 10/11 albo macOS, Claude Desktop z sekcją Settings → Extensions (jeśli jej nie
+widzisz, zaktualizuj Claude Desktop albo użyj Metody B). Node.js **nie jest potrzebny** — Claude
+Desktop ma go wbudowanego.
+
+### Metoda B: ZIP + `setup.ps1` (zapasowa, tylko Windows)
+
+Użyj tej metody tylko jeśli Metoda A się nie uda (np. starsza wersja Claude Desktop bez Extensions).
 
 1. Na tej stronie kliknij zielony przycisk **Code → Download ZIP** i rozpakuj folder w dowolnym
    miejscu na dysku (np. `D:\Refleksja`). Nie klonuj repo przez git, jeśli nie wiesz, co to znaczy
    — zwykły ZIP wystarczy w zupełności.
-2. Zamknij Claude Desktop, jeśli jest otwarte.
+2. Zamknij Claude Desktop **całkowicie** — kliknięcie X zwykle tylko chowa okno do zasobnika,
+   proces nadal działa w tle. Kliknij prawym na ikonę w zasobniku systemowym (obok zegara) →
+   Zamknij/Quit. Sprawdź w Menedżerze zadań (Ctrl+Shift+Esc), czy proces "Claude" naprawdę zniknął.
 3. Kliknij dwa razy **`setup.cmd`**. Za pierwszym razem pobierze się lokalny, przenośny silnik
    Node.js (ok. 50 MB, jednorazowo, prosto z oficjalnej strony nodejs.org) i sam wpisze się do
    konfiguracji Claude Desktop. Nic nie trzeba nigdzie instalować ani klikać "Zgadzam się" w
    żadnym instalatorze — to zwykły, podpisany plik `node.exe` położony obok reszty plików.
-4. Otwórz Claude Desktop ponownie. Bridge pojawi się jako `personal-reflection`.
-5. **Załóż Projekt** (Claude Desktop → Projects → Create project, dowolna nazwa) i w jego
-   ustawieniach, w polu **Custom instructions**, wklej treść z pliku `PROJECT-CUSTOM-INSTRUCTIONS.md`
-   z tego repo. Bez tego kroku bridge nadal działa technicznie, ale model w zwykłym czacie nie ma
-   pewnego sposobu, żeby wiedzieć, że ma czytać `CLAUDE.md` na starcie rozmowy, i traktuje go jako
-   zwykłą, niesprawdzoną treść z narzędzia zamiast Twoich instrukcji — Projekt to jedyny sposób,
-   żeby dać mu ten sam poziom zaufania, jaki ma system typu Cowork z podłączonym folderem.
-6. **Każdą nową sesję zaczynaj z poziomu tego Projektu** — klikaj "New chat" otwarty wewnątrz
-   Projektu, nie ten ogólny z głównego paska bocznego. Zwykły, nieprzypisany czat nie ma pola
-   Custom instructions i wraca do zachowania sprzed tego kroku.
-7. **Ważne:** to jest pusty silnik. Nie wklejaj tu niczyich gotowych wpisów. Niech `CLAUDE.md` i
-   reszta zapełnią się przez rozmowę z Claude, od zera.
-8. **Ważne #2:** jeśli po jakimś czasie Twoje prawdziwe sesje wylądują w folderze `data/sessions/`
-   — nie synchronizuj tego z powrotem do tego (publicznego) repozytorium GitHub. Ten folder, gdy
-   już go rozpakujesz na dysku, jest zwykłym lokalnym folderem, nie ma żadnego automatycznego
-   połączenia z powrotem do GitHub — więc nic się nie stanie samo, ale nie commituj i nie pushuj
-   `data/` ręcznie.
+   Jeśli po pobraniu Node.js okno się nie zamknie samo, tylko pokaże błąd — przeczytaj go, zamiast
+   zamykać: skrypt teraz zawsze zatrzymuje się i tłumaczy, co poszło nie tak, zamiast cicho znikać.
+4. Otwórz Claude Desktop ponownie (ze Start, nie przez kliknięcie starej ikony w zasobniku — to
+   często tylko przywraca stary, wciąż działający proces zamiast uruchomić nowy). Bridge pojawi się
+   jako `personal-reflection`.
+5. Jeśli mimo to nic się nie pojawiło — zobacz sekcję **Rozwiązywanie problemów** niżej. To znany,
+   udokumentowany scenariusz w niektórych wersjach Claude Desktop (pakowanych jako MSIX), nie
+   przypadkowa usterka.
+6. Kroki 5–7 identyczne jak w Metodzie A: Projekt + `PROJECT-CUSTOM-INSTRUCTIONS.md`, zawsze nowy
+   chat z poziomu Projektu, nie wklejaj gotowych wpisów.
+7. Jeśli po jakimś czasie Twoje prawdziwe sesje wylądują w folderze `data/sessions/` — nie
+   synchronizuj tego z powrotem do tego (publicznego) repozytorium GitHub. Ten folder, gdy już go
+   rozpakujesz na dysku, jest zwykłym lokalnym folderem, nie ma żadnego automatycznego połączenia
+   z powrotem do GitHub — więc nic się nie stanie samo, ale nie commituj i nie pushuj `data/` ręcznie.
 
-Wymagania: 64-bitowy Windows 10/11, dowolna nowoczesna wersja Claude Desktop, i internet przy
-pierwszym uruchomieniu `setup.cmd` (do pobrania silnika Node.js).
+Wymagania: 64-bitowy Windows 10/11, dowolna wersja Claude Desktop, i internet przy pierwszym
+uruchomieniu `setup.cmd` (do pobrania silnika Node.js).
+
+### Rozwiązywanie problemów
+
+**Metodą B: setup przeszedł bez błędu, ale po restarcie Claude Desktop nic nowego się nie
+pojawiło.** Sprawdź w tej kolejności:
+
+1. Czy Claude Desktop zostało naprawdę zamknięte (patrz krok 2 Metody B), a nie tylko
+   zminimalizowane. To najczęstsza przyczyna.
+2. Otwórz Claude Desktop → **Developer → Edit Config**. Jeśli ten plik w ogóle nie wygląda jak
+   config z sekcją `mcpServers` (np. zawiera zupełnie inne pola, bez `personal-reflection`) — masz
+   wersję Claude Desktop pakowaną jako MSIX, w której przycisk "Edit Config" otwiera **inny plik**
+   niż ten, który aplikacja faktycznie czyta ([znany, udokumentowany problem](https://github.com/anthropics/claude-code/issues/26073)).
+   W tej sytuacji `setup.ps1` nie ma jak trafić do właściwego miejsca — **przejdź na Metodę A**
+   (`.mcpb`), ona nie zależy od tego pliku w ogóle.
+3. Jeśli masz klasyczną (nie-MSIX) wersję Claude Desktop i `claude_desktop_config.json` faktycznie
+   zawiera wpis `personal-reflection`, ale bridge mimo to nie działa — sprawdź, czy `node\node.exe`
+   istnieje w folderze, gdzie rozpakowałaś ZIP, i spróbuj odpalić `start-bridge.cmd` ręcznie: powinno
+   otworzyć się czarne okienko konsoli i **zostać otwarte** (czeka na połączenie). Jeśli od razu się
+   zamyka albo pokazuje błąd, to inny problem niż config.
+
+**Ogólnie, niezależnie od metody:** jeśli coś nie działa i nie wiadomo dlaczego, Metoda A jest
+prostsza do zdiagnozowania, bo Claude Desktop sam pokazuje ekran instalacji z błędem zamiast
+milczeć — warto ją wypróbować nawet jeśli zaczęłaś od Metody B.
 
 ## Structure
 
 ```text
 .
+├── personal-reflection-bridge.mcpb  # packed Desktop Extension - Method A install, see below
+├── manifest.json                # MCPB manifest this .mcpb is built from (source of truth)
 ├── data/
 │   ├── index.json             # lightweight search/list index (starts empty: [])
 │   └── sessions/               # one Markdown file per session (starts empty)
 ├── src/session-store.mjs      # storage interface + local implementation
 ├── server.mjs                  # MCP stdio bridge
 ├── scripts/                    # maintenance scripts (rebuild index, migrations)
-├── setup.ps1 / setup.cmd       # one-time, no-install Windows setup (fetches a portable
+├── setup.ps1 / setup.cmd       # Method B: one-time, no-install Windows setup (fetches a portable
 │                                # Node.js runtime and registers the bridge with Claude Desktop)
 ├── start-bridge.cmd            # manual/test launch only — not needed for normal use
 ├── reflection-contract.json    # categories and local storage settings
@@ -100,12 +164,18 @@ If you're not on Windows, or already have Node.js on your PATH, you don't need `
 }
 ```
 
-The bridge exposes `get_workspace_instructions`, `list_sessions`, `get_session`, `search_sessions`,
-`create_session`, and `update_session`. `get_workspace_instructions` reads `CLAUDE.md`, `GLOSY.md`,
-`WZORCE.md`, `DZIENNIK.md` from disk (whichever exist) plus the real local server time, and should
-be called before anything else at the start of a conversation — see `PROJECT-CUSTOM-INSTRUCTIONS.md`
-for why plain chat needs a Project to make that reliable. `list_sessions` returns lightweight index
-records, including `about`.
+The bridge exposes `get_workspace_instructions`, `update_workspace_instructions`, `list_sessions`,
+`get_session`, `search_sessions`, `create_session`, and `update_session`. `get_workspace_instructions`
+reads `CLAUDE.md`, `GLOSY.md`, `WZORCE.md`, `DZIENNIK.md` from disk (whichever exist) plus the real
+local server time, and should be called before anything else at the start of a conversation — see
+`PROJECT-CUSTOM-INSTRUCTIONS.md` for why plain chat needs a Project to make that reliable.
+`update_workspace_instructions` is the write side of the same four files, for clients (like plain
+Claude Desktop chat) that have no other filesystem tool — it replaces a whole file at once, so read
+first. `list_sessions` returns lightweight index records, including `about`.
+
+To build `personal-reflection-bridge.mcpb` yourself from `manifest.json` (for example after editing
+`server.mjs`): `npm install -g @anthropic-ai/mcpb`, then `mcpb pack . personal-reflection-bridge.mcpb`
+from this folder.
 `search_sessions` defaults to the same metadata plus a short context around the first text match;
 use `get_session(id)` for the whole entry, or pass `full: true` only when intentionally retrieving
 complete matching entries. It speaks JSON-RPC over stdio, supporting both NDJSON and
