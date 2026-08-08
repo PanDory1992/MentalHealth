@@ -14,14 +14,14 @@ import { spawn } from "node:child_process";
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(testDir, "..");
 
-function makeIsolatedServer(extraFiles = {}) {
+function makeIsolatedServer(extraFiles = {}, { env } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reflection-server-"));
   fs.copyFileSync(path.join(repoRoot, "server.mjs"), path.join(dir, "server.mjs"));
   fs.copyFileSync(path.join(repoRoot, "reflection-contract.json"), path.join(dir, "reflection-contract.json"));
   fs.mkdirSync(path.join(dir, "src"));
   fs.copyFileSync(path.join(repoRoot, "src", "session-store.mjs"), path.join(dir, "src", "session-store.mjs"));
   for (const [name, content] of Object.entries(extraFiles)) fs.writeFileSync(path.join(dir, name), content, "utf8");
-  const child = spawn(process.execPath, ["server.mjs"], { cwd: dir, stdio: ["pipe", "pipe", "pipe"] });
+  const child = spawn(process.execPath, ["server.mjs"], { cwd: dir, stdio: ["pipe", "pipe", "pipe"], env: { ...process.env, ...env } });
   return { child, dir };
 }
 
@@ -91,7 +91,7 @@ test("initialize and tools/list over NDJSON framing", async () => {
     sendNdjson(child, { jsonrpc: "2.0", id: 2, method: "tools/list" });
     const list = await next();
     const names = list.result.tools.map((tool) => tool.name);
-    assert.deepEqual(names, ["get_workspace_instructions", "list_sessions", "get_session", "search_sessions", "create_session", "update_session"]);
+    assert.deepEqual(names, ["get_workspace_instructions", "update_workspace_instructions", "list_sessions", "get_session", "search_sessions", "create_session", "update_session"]);
   } finally {
     cleanup(child, dir);
   }
@@ -108,6 +108,29 @@ test("get_workspace_instructions reads CLAUDE.md/GLOSY.md/WZORCE.md/DZIENNIK.md 
     assert.equal(result.instructions["WZORCE.md"], null);
     assert.equal(result.instructions["DZIENNIK.md"], null);
     assert.match(result.server_time, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
+  } finally {
+    cleanup(child, dir);
+  }
+});
+
+test("update_workspace_instructions writes CLAUDE.md/GLOSY.md/WZORCE.md/DZIENNIK.md so a client without direct filesystem tools (i.e. not Cowork) can still follow this workspace's own instructions to update them, and rejects any other filename", async () => {
+  const { child, dir } = makeIsolatedServer();
+  const next = createReader(child);
+  try {
+    sendNdjson(child, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "update_workspace_instructions", arguments: { file: "WZORCE.md", content: "# WZORCE\n\nNowa granica: temat X." } } });
+    const written = JSON.parse((await next()).result.content[0].text);
+    assert.equal(written.file, "WZORCE.md");
+    assert.equal(fs.readFileSync(path.join(dir, "WZORCE.md"), "utf8"), "# WZORCE\n\nNowa granica: temat X.");
+
+    sendNdjson(child, { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "get_workspace_instructions", arguments: {} } });
+    const read = JSON.parse((await next()).result.content[0].text);
+    assert.equal(read.instructions["WZORCE.md"], "# WZORCE\n\nNowa granica: temat X.");
+
+    sendNdjson(child, { jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "update_workspace_instructions", arguments: { file: "reflection-contract.json", content: "{}" } } });
+    const rejected = await next();
+    assert.match(rejected.error.message, /file must be one of/);
+    const contractStillIntact = JSON.parse(fs.readFileSync(path.join(dir, "reflection-contract.json"), "utf8"));
+    assert.equal(contractStillIntact.schema_version, 1);
   } finally {
     cleanup(child, dir);
   }
@@ -150,5 +173,23 @@ test("Content-Length framing works end-to-end for ping and tools/call", async ()
     assert.equal(created.topic, "Content-Length test");
   } finally {
     cleanup(child, dir);
+  }
+});
+
+test("REFLECTION_DATA_DIR redirects storage outside the server's own folder (needed for .mcpb installs, where the extension's own directory may not be writable) - and is a no-op, matching the classic install path exactly, when unset", async () => {
+  const external = fs.mkdtempSync(path.join(os.tmpdir(), "reflection-external-data-"));
+  const { child, dir } = makeIsolatedServer({}, { env: { REFLECTION_DATA_DIR: external } });
+  const next = createReader(child);
+  try {
+    sendNdjson(child, { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "create_session", arguments: { topic: "External data dir test" } } });
+    const created = JSON.parse((await next()).result.content[0].text);
+    assert.equal(created.topic, "External data dir test");
+
+    assert.ok(fs.existsSync(path.join(external, "index.json")), "index.json should exist under REFLECTION_DATA_DIR");
+    assert.ok(fs.existsSync(path.join(external, "sessions", created.file)), "session file should exist under REFLECTION_DATA_DIR/sessions");
+    assert.ok(!fs.existsSync(path.join(dir, "data")), "no data/ directory should be created inside the server's own folder when REFLECTION_DATA_DIR is set");
+  } finally {
+    cleanup(child, dir);
+    fs.rmSync(external, { recursive: true, force: true });
   }
 });
