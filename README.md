@@ -59,17 +59,20 @@ Użyj tej metody tylko jeśli Metoda A się nie uda (np. starsza wersja Claude D
    proces nadal działa w tle. Kliknij prawym na ikonę w zasobniku systemowym (obok zegara) →
    Zamknij/Quit. Sprawdź w Menedżerze zadań (Ctrl+Shift+Esc), czy proces "Claude" naprawdę zniknął.
 3. Kliknij dwa razy **`setup.cmd`**. Za pierwszym razem pobierze się lokalny, przenośny silnik
-   Node.js (ok. 50 MB, jednorazowo, prosto z oficjalnej strony nodejs.org) i sam wpisze się do
-   konfiguracji Claude Desktop. Nic nie trzeba nigdzie instalować ani klikać "Zgadzam się" w
-   żadnym instalatorze — to zwykły, podpisany plik `node.exe` położony obok reszty plików.
-   Jeśli po pobraniu Node.js okno się nie zamknie samo, tylko pokaże błąd — przeczytaj go, zamiast
-   zamykać: skrypt teraz zawsze zatrzymuje się i tłumaczy, co poszło nie tak, zamiast cicho znikać.
+   Node.js (ok. 50 MB, jednorazowo, prosto z oficjalnej strony nodejs.org). Skrypt sam wykrywa,
+   czy masz **MSIX-ową wersję Claude Desktop** (obecny domyślny instalator z claude.com/download,
+   od ok. lutego 2026) i w takim przypadku zapisuje config w **obu** możliwych lokalizacjach —
+   klasycznej (`%APPDATA%\Claude`) oraz prawdziwej, wirtualizowanej ścieżce MSIX
+   (`%LOCALAPPDATA%\Packages\Claude_...\LocalCache\Roaming\Claude`), której "Edit Config" w samym
+   Claude Desktop nie pokazuje poprawnie (patrz punkt 2 niżej). Nic nie trzeba nigdzie instalować
+   ani klikać "Zgadzam się" w żadnym instalatorze — to zwykły, podpisany plik `node.exe` położony
+   obok reszty plików. Jeśli po pobraniu Node.js okno się nie zamknie samo, tylko pokaże błąd —
+   przeczytaj go, zamiast zamykać: skrypt teraz zawsze zatrzymuje się i tłumaczy, co poszło nie
+   tak, zamiast cicho znikać.
 4. Otwórz Claude Desktop ponownie (ze Start, nie przez kliknięcie starej ikony w zasobniku — to
    często tylko przywraca stary, wciąż działający proces zamiast uruchomić nowy). Bridge pojawi się
    jako `personal-reflection`.
-5. Jeśli mimo to nic się nie pojawiło — zobacz sekcję **Rozwiązywanie problemów** niżej. To znany,
-   udokumentowany scenariusz w niektórych wersjach Claude Desktop (pakowanych jako MSIX), nie
-   przypadkowa usterka.
+5. Jeśli mimo to nic się nie pojawiło — zobacz sekcję **Rozwiązywanie problemów** niżej.
 6. Kroki 5–7 identyczne jak w Metodzie A: Projekt + `PROJECT-CUSTOM-INSTRUCTIONS.md`, zawsze nowy
    chat z poziomu Projektu, nie wklejaj gotowych wpisów.
 7. Jeśli po jakimś czasie Twoje prawdziwe sesje wylądują w folderze `data/sessions/` — nie
@@ -82,26 +85,32 @@ uruchomieniu `setup.cmd` (do pobrania silnika Node.js).
 
 ### Rozwiązywanie problemów
 
+**Metodą A: instalacja `.mcpb` kończy się błędem "Private dir leaf redirects
+(junction/substitute-name plant)".** To potwierdzony, otwarty błąd samego Claude Desktop w wersji
+MSIX ([anthropics/claude-code#84199](https://github.com/anthropics/claude-code/issues/84199),
+zgłoszony 5.08.2026), nie coś do naprawienia w tym repozytorium — wewnętrzny mechanizm
+bezpieczeństwa fałszywie wykrywa junction/link symboliczny, którego tam nie ma. Nie da się tego
+obejść z tej strony; **przejdź na Metodę B**, ona nie korzysta z tego samego mechanizmu instalacji.
+
 **Metodą B: setup przeszedł bez błędu, ale po restarcie Claude Desktop nic nowego się nie
 pojawiło.** Sprawdź w tej kolejności:
 
 1. Czy Claude Desktop zostało naprawdę zamknięte (patrz krok 2 Metody B), a nie tylko
    zminimalizowane. To najczęstsza przyczyna.
-2. Otwórz Claude Desktop → **Developer → Edit Config**. Jeśli ten plik w ogóle nie wygląda jak
-   config z sekcją `mcpServers` (np. zawiera zupełnie inne pola, bez `personal-reflection`) — masz
-   wersję Claude Desktop pakowaną jako MSIX, w której przycisk "Edit Config" otwiera **inny plik**
-   niż ten, który aplikacja faktycznie czyta ([znany, udokumentowany problem](https://github.com/anthropics/claude-code/issues/26073)).
-   W tej sytuacji `setup.ps1` nie ma jak trafić do właściwego miejsca — **przejdź na Metodę A**
-   (`.mcpb`), ona nie zależy od tego pliku w ogóle.
-3. Jeśli masz klasyczną (nie-MSIX) wersję Claude Desktop i `claude_desktop_config.json` faktycznie
-   zawiera wpis `personal-reflection`, ale bridge mimo to nie działa — sprawdź, czy `node\node.exe`
+2. **Sprawdzaj przez Connectors, nie przez "Edit Config".** W wersji MSIX Claude Desktop
+   (obecny domyślny instalator z claude.com/download) przycisk **Developer → Edit Config** potrafi
+   otwierać/tworzyć plik w `%APPDATA%\Claude`, którego aplikacja **w ogóle nie czyta** — prawdziwy
+   config leży wtedy w innym miejscu
+   (`%LOCALAPPDATA%\Packages\Claude_...\LocalCache\Roaming\Claude\claude_desktop_config.json`),
+   potwierdzone na żywym systemie 8.08.2026. `setup.ps1` (od tej wersji) wykrywa to automatycznie
+   i zapisuje config w obu lokalizacjach jednocześnie — ale jeśli i tak nic nie działa, nie ufaj
+   temu, co pokazuje "Edit Config". Zamiast tego w oknie rozmowy kliknij **"+" przy polu
+   wiadomości → Connectors** — to pokazuje faktycznie podłączone serwery MCP. Jeśli tam widać
+   `personal-reflection` jako uruchomiony — działa, niezależnie od tego, co sugeruje Edit Config.
+3. Jeśli `personal-reflection` nie pojawia się też w Connectors — sprawdź, czy `node\node.exe`
    istnieje w folderze, gdzie rozpakowałaś ZIP, i spróbuj odpalić `start-bridge.cmd` ręcznie: powinno
    otworzyć się czarne okienko konsoli i **zostać otwarte** (czeka na połączenie). Jeśli od razu się
    zamyka albo pokazuje błąd, to inny problem niż config.
-
-**Ogólnie, niezależnie od metody:** jeśli coś nie działa i nie wiadomo dlaczego, Metoda A jest
-prostsza do zdiagnozowania, bo Claude Desktop sam pokazuje ekran instalacji z błędem zamiast
-milczeć — warto ją wypróbować nawet jeśli zaczęłaś od Metody B.
 
 ## Structure
 
