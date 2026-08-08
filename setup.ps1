@@ -54,52 +54,84 @@ Write-Host ""
 Write-Host "Krok 2/2: konfiguruje Claude Desktop..."
 
 try {
-    $configDir = Join-Path $env:APPDATA "Claude"
-    $configPath = Join-Path $configDir "claude_desktop_config.json"
+    # Claude Desktop on Windows exists in two different packagings, and each reads
+    # its config from a different folder:
+    #   - classic (Squirrel) build  -> %APPDATA%\Claude
+    #   - MSIX build (current official installer, since ~Feb 2026) -> the real,
+    #     MSIX-virtualized profile at
+    #     %LOCALAPPDATA%\Packages\<PackageFamilyName>\LocalCache\Roaming\Claude
+    # On an MSIX install, the "Edit Config" button in Settings -> Developer can
+    # still point at (or create) the classic path even though the app itself
+    # never reads it - confirmed on a real machine on 8.08.2026. Writing only to
+    # %APPDATA%\Claude on such a machine produces a config file that looks
+    # correct but is silently ignored. So: write to the classic path always
+    # (harmless if unused), and ALSO write to the MSIX path whenever an MSIX
+    # Claude package is found, so this works regardless of which build is
+    # installed.
+    $configDirs = New-Object System.Collections.Generic.List[string]
+    $configDirs.Add((Join-Path $env:APPDATA "Claude"))
 
-    if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Force -Path $configDir | Out-Null }
-
-    if (Test-Path $configPath) {
-        $raw = Get-Content -Path $configPath -Raw
-        if ([string]::IsNullOrWhiteSpace($raw)) {
-            $config = New-Object PSObject
-        } else {
-            $config = $raw | ConvertFrom-Json
+    $packagesRoot = Join-Path $env:LOCALAPPDATA "Packages"
+    if (Test-Path $packagesRoot) {
+        $msixPackage = Get-ChildItem -Path $packagesRoot -Directory -Filter "Claude_*" -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($msixPackage) {
+            $msixConfigDir = Join-Path $msixPackage.FullName "LocalCache\Roaming\Claude"
+            $configDirs.Add($msixConfigDir)
+            Write-Host "Wykryto MSIX-owa wersje Claude Desktop, konfiguruje takze: $msixConfigDir"
         }
-    } else {
-        $config = New-Object PSObject
-    }
-
-    if (-not (Get-Member -InputObject $config -Name "mcpServers" -MemberType NoteProperty)) {
-        $config | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue (New-Object PSObject)
     }
 
     $entry = New-Object PSObject
     $entry | Add-Member -NotePropertyName "command" -NotePropertyValue $nodeExe
     $entry | Add-Member -NotePropertyName "args" -NotePropertyValue @((Join-Path $root "server.mjs"))
 
-    if (Get-Member -InputObject $config.mcpServers -Name "personal-reflection" -MemberType NoteProperty) {
-        $config.mcpServers.'personal-reflection' = $entry
-    } else {
-        $config.mcpServers | Add-Member -NotePropertyName "personal-reflection" -NotePropertyValue $entry
+    $writtenTo = New-Object System.Collections.Generic.List[string]
+    foreach ($configDir in $configDirs) {
+        $configPath = Join-Path $configDir "claude_desktop_config.json"
+
+        if (-not (Test-Path $configDir)) { New-Item -ItemType Directory -Force -Path $configDir | Out-Null }
+
+        if (Test-Path $configPath) {
+            $raw = Get-Content -Path $configPath -Raw
+            if ([string]::IsNullOrWhiteSpace($raw)) {
+                $config = New-Object PSObject
+            } else {
+                $config = $raw | ConvertFrom-Json
+            }
+        } else {
+            $config = New-Object PSObject
+        }
+
+        if (-not (Get-Member -InputObject $config -Name "mcpServers" -MemberType NoteProperty)) {
+            $config | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue (New-Object PSObject)
+        }
+
+        if (Get-Member -InputObject $config.mcpServers -Name "personal-reflection" -MemberType NoteProperty) {
+            $config.mcpServers.'personal-reflection' = $entry
+        } else {
+            $config.mcpServers | Add-Member -NotePropertyName "personal-reflection" -NotePropertyValue $entry
+        }
+
+        # Set-Content -Encoding UTF8 writes a BOM in Windows PowerShell 5.1 (the .NET UTF8Encoding
+        # default used here does not). A BOM at the start of this file can make some JSON parsers -
+        # including plain JSON.parse, which is what most Electron apps use - fail to read it at all,
+        # potentially breaking every MCP server in the config, not just this one. Write explicitly
+        # without a BOM to avoid that.
+        $json = $config | ConvertTo-Json -Depth 10
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        [System.IO.File]::WriteAllText($configPath, $json, $utf8NoBom)
+
+        $writtenTo.Add($configPath)
     }
 
-    # Set-Content -Encoding UTF8 writes a BOM in Windows PowerShell 5.1 (the .NET UTF8Encoding
-    # default used here does not). A BOM at the start of this file can make some JSON parsers -
-    # including plain JSON.parse, which is what most Electron apps use - fail to read it at all,
-    # potentially breaking every MCP server in the config, not just this one. Write explicitly
-    # without a BOM to avoid that.
-    $json = $config | ConvertTo-Json -Depth 10
-    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-    [System.IO.File]::WriteAllText($configPath, $json, $utf8NoBom)
-
-    Write-Host "Config zapisany: $configPath"
+    Write-Host "Config zapisany:"
+    foreach ($p in $writtenTo) { Write-Host "  - $p" }
 } catch {
     Write-Host ""
     Write-Host "Konfiguracja Claude Desktop nie powiodla sie."
     Write-Host "Blad: $($_.Exception.Message)"
     Write-Host ""
-    Write-Host "Najczestsza przyczyna: plik $configPath juz istnieje i jest uszkodzony (np. po recznej edycji)."
+    Write-Host "Najczestsza przyczyna: plik configu juz istnieje i jest uszkodzony (np. po recznej edycji)."
     Write-Host "Otworz go w Notatniku, sprawdz czy to poprawny JSON, i uruchom ten skrypt ponownie."
     Read-Host "Nacisnij Enter, aby zamknac to okno"
     exit 1
