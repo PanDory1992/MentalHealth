@@ -57,6 +57,8 @@ pierwszym uruchomieniu `setup.cmd` (do pobrania silnika Node.js).
 ├── reflection-contract.json    # categories and local storage settings
 ├── CLAUDE.md, GLOSY.md,
 │   WZORCE.md, DZIENNIK.md      # empty starting scaffolding, see note above
+├── WYWIAD-STARTOWY.md          # one-time onboarding questionnaire, see CLAUDE.md point 0.2
+├── PROJECT-CUSTOM-INSTRUCTIONS.md  # paste into a Claude Project's Custom instructions field
 └── package.json
 ```
 
@@ -66,12 +68,13 @@ later be replaced by a sync or hosted provider without changing the MCP tool int
 ## Entry schema
 
 Every session has `id`, `date`, `topic`, `situation`, `logic`, `emotion`, `summary`, `categories`,
-`tags`, `raw_input`, `audio_ref`, and optional `about` in YAML frontmatter, followed by an optional
-free Markdown body. `date` is the full ISO 8601 creation time in local time with its offset (for
-example `+02:00`) and is read-only afterward; it therefore agrees with the local-time ID. `about`
-holds the period or context it concerns (for example `1992-1996`, `childhood`, or `May 2026`) and
-may be empty. `audio_ref` is retained for a future feature; the bridge does not record or
-transcribe audio.
+`tags`, `raw_input`, `audio_ref`, and optional `about`/`prompted_by` in YAML frontmatter, followed
+by an optional free Markdown body. `date` is the full ISO 8601 creation time in local time with its
+offset (for example `+02:00`) and is read-only afterward; it therefore agrees with the local-time
+ID. `about` holds the period or context it concerns (for example `1992-1996`, `childhood`, or
+`May 2026`) and may be empty. `prompted_by` is a short paraphrase of Claude's own preceding
+question or message, so an old entry stays orientable without the surrounding conversation.
+`audio_ref` is retained for a future feature; the bridge does not record or transcribe audio.
 
 The allowed categories live in `reflection-contract.json` (default: `Praca`, `Zdrowie`, `Relacje`,
 `Ja/Emocje`, `Inne`) — edit that file to fit your own vocabulary. Tags are freeform.
@@ -125,6 +128,7 @@ summary: "Main takeaway"
 categories: ["Ja/Emocje"]
 tags: ["evening", "reflection"]
 raw_input: null
+prompted_by: null
 audio_ref: null
 about: "May 2026"
 ---
