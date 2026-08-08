@@ -9,16 +9,38 @@ const contract = JSON.parse(fs.readFileSync(path.join(root, "reflection-contract
 if (contract?.schema_version !== 1 || !Array.isArray(contract.categories) || !contract.storage?.data_directory) {
   throw new Error("Invalid reflection-contract.json.");
 }
+// REFLECTION_DATA_DIR lets a host (e.g. a Claude Desktop extension installing this as an
+// .mcpb, where the extension's own install directory may not be a sensible or guaranteed-
+// writable place for personal data) point the store somewhere else, such as a folder the
+// user picked. Falls back to the classic root-relative "data" directory when unset, so the
+// plain ZIP + setup.ps1 install path is completely unaffected.
+const dataDirectory = process.env.REFLECTION_DATA_DIR
+  ? path.resolve(process.env.REFLECTION_DATA_DIR)
+  : path.join(root, contract.storage.data_directory);
 const store = new LocalMarkdownSessionStore({
-  dataDirectory: path.join(root, contract.storage.data_directory),
+  dataDirectory,
   categories: contract.categories
 });
+
+const WORKSPACE_INSTRUCTION_FILES = ["CLAUDE.md", "GLOSY.md", "WZORCE.md", "DZIENNIK.md"];
 
 const tools = [
   {
     name: "get_workspace_instructions",
     description: "Returns this workspace's operating instructions (CLAUDE.md, GLOSY.md, WZORCE.md, DZIENNIK.md, whichever exist) plus the current local server time. Call this first, before any other tool, at the start of every conversation. In plain Chat there is no automatic way to see these files or the real clock - unlike Cowork or other folder-connected clients, which inject them automatically - so this tool is the only path to them there. Harmless to call again even where instructions are already in context.",
     inputSchema: { type: "object", properties: {} }
+  },
+  {
+    name: "update_workspace_instructions",
+    description: "Overwrites one of CLAUDE.md, GLOSY.md, WZORCE.md, or DZIENNIK.md with new full content. Use this whenever this workspace's own instructions call for updating one of these files (for example: recording a boundary in WZORCE.md, adding today's row to DZIENNIK.md, or noting a fact in CLAUDE.md) and no direct filesystem tool is available in this conversation (i.e. you are not in Cowork or another folder-connected client, and get_workspace_instructions was your only way to read these files). This replaces the entire file, not just part of it - always call get_workspace_instructions first and edit from the current content, so nothing is lost.",
+    inputSchema: {
+      type: "object",
+      required: ["file", "content"],
+      properties: {
+        file: { type: "string", enum: WORKSPACE_INSTRUCTION_FILES },
+        content: { type: "string", description: "The complete new file content, replacing whatever is there now." }
+      }
+    }
   },
   {
     name: "list_sessions",
@@ -98,6 +120,7 @@ function sessionFieldSchema({ includeId, includeBody, includeDate = true }) {
 function callTool(name, args) {
   switch (name) {
     case "get_workspace_instructions": return textResult(readWorkspaceInstructions());
+    case "update_workspace_instructions": return textResult(writeWorkspaceInstructions(args));
     case "list_sessions": return textResult(store.listSessions(args));
     case "get_session": {
       const entry = store.getSession(args.id);
@@ -118,13 +141,18 @@ function textResult(value) {
   return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] };
 }
 function readWorkspaceInstructions() {
-  const files = ["CLAUDE.md", "GLOSY.md", "WZORCE.md", "DZIENNIK.md"];
   const instructions = {};
-  for (const name of files) {
+  for (const name of WORKSPACE_INSTRUCTION_FILES) {
     const filePath = path.join(root, name);
     instructions[name] = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
   }
   return { server_time: formatServerLocalIso(new Date()), instructions };
+}
+function writeWorkspaceInstructions({ file, content } = {}) {
+  if (!WORKSPACE_INSTRUCTION_FILES.includes(file)) throw new Error(`file must be one of: ${WORKSPACE_INSTRUCTION_FILES.join(", ")}`);
+  if (typeof content !== "string") throw new Error("content must be text.");
+  fs.writeFileSync(path.join(root, file), content, "utf8");
+  return { file, bytes_written: Buffer.byteLength(content, "utf8") };
 }
 function formatServerLocalIso(source) {
   const pad = (value, width = 2) => String(value).padStart(width, "0");
