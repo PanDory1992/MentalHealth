@@ -21,9 +21,18 @@ else's.
    konfiguracji Claude Desktop. Nic nie trzeba nigdzie instalować ani klikać "Zgadzam się" w
    żadnym instalatorze — to zwykły, podpisany plik `node.exe` położony obok reszty plików.
 4. Otwórz Claude Desktop ponownie. Bridge pojawi się jako `personal-reflection`.
-5. **Ważne:** to jest pusty silnik. Nie wklejaj tu niczyich gotowych wpisów. Niech `CLAUDE.md` i
+5. **Załóż Projekt** (Claude Desktop → Projects → Create project, dowolna nazwa) i w jego
+   ustawieniach, w polu **Custom instructions**, wklej treść z pliku `PROJECT-CUSTOM-INSTRUCTIONS.md`
+   z tego repo. Bez tego kroku bridge nadal działa technicznie, ale model w zwykłym czacie nie ma
+   pewnego sposobu, żeby wiedzieć, że ma czytać `CLAUDE.md` na starcie rozmowy, i traktuje go jako
+   zwykłą, niesprawdzoną treść z narzędzia zamiast Twoich instrukcji — Projekt to jedyny sposób,
+   żeby dać mu ten sam poziom zaufania, jaki ma system typu Cowork z podłączonym folderem.
+6. **Każdą nową sesję zaczynaj z poziomu tego Projektu** — klikaj "New chat" otwarty wewnątrz
+   Projektu, nie ten ogólny z głównego paska bocznego. Zwykły, nieprzypisany czat nie ma pola
+   Custom instructions i wraca do zachowania sprzed tego kroku.
+7. **Ważne:** to jest pusty silnik. Nie wklejaj tu niczyich gotowych wpisów. Niech `CLAUDE.md` i
    reszta zapełnią się przez rozmowę z Claude, od zera.
-6. **Ważne #2:** jeśli po jakimś czasie Twoje prawdziwe sesje wylądują w folderze `data/sessions/`
+8. **Ważne #2:** jeśli po jakimś czasie Twoje prawdziwe sesje wylądują w folderze `data/sessions/`
    — nie synchronizuj tego z powrotem do tego (publicznego) repozytorium GitHub. Ten folder, gdy
    już go rozpakujesz na dysku, jest zwykłym lokalnym folderem, nie ma żadnego automatycznego
    połączenia z powrotem do GitHub — więc nic się nie stanie samo, ale nie commituj i nie pushuj
@@ -88,8 +97,12 @@ If you're not on Windows, or already have Node.js on your PATH, you don't need `
 }
 ```
 
-The bridge exposes `list_sessions`, `get_session`, `search_sessions`, `create_session`, and
-`update_session`. `list_sessions` returns lightweight index records, including `about`.
+The bridge exposes `get_workspace_instructions`, `list_sessions`, `get_session`, `search_sessions`,
+`create_session`, and `update_session`. `get_workspace_instructions` reads `CLAUDE.md`, `GLOSY.md`,
+`WZORCE.md`, `DZIENNIK.md` from disk (whichever exist) plus the real local server time, and should
+be called before anything else at the start of a conversation — see `PROJECT-CUSTOM-INSTRUCTIONS.md`
+for why plain chat needs a Project to make that reliable. `list_sessions` returns lightweight index
+records, including `about`.
 `search_sessions` defaults to the same metadata plus a short context around the first text match;
 use `get_session(id)` for the whole entry, or pass `full: true` only when intentionally retrieving
 complete matching entries. It speaks JSON-RPC over stdio, supporting both NDJSON and
