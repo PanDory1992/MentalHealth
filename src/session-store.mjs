@@ -3,7 +3,7 @@ import path from "node:path";
 
 export const ENTRY_FIELDS = [
   "id", "date", "topic", "situation", "logic", "emotion", "summary",
-  "categories", "tags", "raw_input", "audio_ref", "about"
+  "categories", "tags", "raw_input", "prompted_by", "audio_ref", "about"
 ];
 
 /** Storage boundary: replace this implementation to add a remote or cloud provider. */
@@ -189,6 +189,7 @@ function normalizeEntry(input, categories, generatedId, isCreate) {
   if (invalid.length) throw new Error(`Invalid categories: ${invalid.join(", ")}. Allowed: ${categories.join(", ")}`);
   entry.tags = array(input.tags ?? [], "tags");
   entry.raw_input = optionalText(input.raw_input, "raw_input");
+  entry.prompted_by = optionalText(input.prompted_by, "prompted_by");
   entry.audio_ref = optionalText(input.audio_ref, "audio_ref");
   entry.about = optionalText(input.about, "about");
   entry.body = text(input.body ?? "", "body");
@@ -245,7 +246,7 @@ function searchResult(entry, needle) {
 }
 function findContext(entry, needle) {
   if (!needle) return null;
-  const fields = ["topic", "situation", "logic", "emotion", "summary", "about", "raw_input", "body"];
+  const fields = ["topic", "situation", "logic", "emotion", "summary", "about", "raw_input", "prompted_by", "body"];
   for (const field of fields) {
     const value = entry[field];
     if (typeof value !== "string") continue;
@@ -292,16 +293,17 @@ function parseMarkdown(source) {
     const raw = line.slice(separator + 1).trim();
     entry[key] = parseYamlValue(raw);
   }
-  for (const field of ENTRY_FIELDS.filter((field) => field !== "about")) {
+  const optionalFields = ["about", "prompted_by"];
+  for (const field of ENTRY_FIELDS.filter((field) => !optionalFields.includes(field))) {
     if (!(field in entry)) throw new Error(`Session file is missing required frontmatter field: ${field}`);
   }
-  if (!("about" in entry)) entry.about = null;
+  for (const field of optionalFields) if (!(field in entry)) entry[field] = null;
   return entry;
 }
 function parseYamlValue(raw) {
   try { return JSON.parse(raw); } catch { return raw === "null" ? null : raw.replace(/^['"]|['"]$/g, ""); }
 }
 function searchableText(entry) {
-  return [entry.topic, entry.situation, entry.logic, entry.emotion, entry.summary, entry.raw_input, entry.audio_ref, entry.about, entry.body, ...(entry.categories || []), ...(entry.tags || [])]
+  return [entry.topic, entry.situation, entry.logic, entry.emotion, entry.summary, entry.raw_input, entry.prompted_by, entry.audio_ref, entry.about, entry.body, ...(entry.categories || []), ...(entry.tags || [])]
     .filter((value) => typeof value === "string").join("\n").toLocaleLowerCase();
 }
