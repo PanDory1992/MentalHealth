@@ -1,0 +1,57 @@
+{
+  "manifest_version": "0.3",
+  "name": "personal-reflection-bridge",
+  "display_name": "Personal Reflection Bridge",
+  "version": "0.2.0",
+  "description": "Local-first, file-based personal reflection journal. Zero external services - everything stays on this computer.",
+  "long_description": "A private, local-first journaling workspace for Claude. Session entries, a onetime onboarding questionnaire, and a lightweight daily check-in are all stored as plain Markdown files on this computer - nothing is uploaded anywhere except when Claude itself is used to read or write them. See CLAUDE.md inside the installed extension folder (or this project's README) for how the workspace is meant to be used.",
+  "author": {
+    "name": "Miki"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PanDory1992/MentalHealth"
+  },
+  "homepage": "https://github.com/PanDory1992/MentalHealth",
+  "documentation": "https://github.com/PanDory1992/MentalHealth/blob/main/README.md",
+  "support": "https://github.com/PanDory1992/MentalHealth/issues",
+  "server": {
+    "type": "node",
+    "entry_point": "server.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server.mjs"],
+      "env": {
+        "REFLECTION_DATA_DIR": "${user_config.data_directory}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "get_workspace_instructions", "description": "Reads CLAUDE.md/GLOSY.md/WZORCE.md/DZIENNIK.md and the real local time. Called automatically at the start of every conversation." },
+    { "name": "update_workspace_instructions", "description": "Overwrites CLAUDE.md/GLOSY.md/WZORCE.md/DZIENNIK.md, since this is not Cowork and there is no other filesystem tool available here." },
+    { "name": "list_sessions", "description": "List session summaries, newest first." },
+    { "name": "get_session", "description": "Get one full reflection session." },
+    { "name": "search_sessions", "description": "Search session content by text, category, tag, or date range." },
+    { "name": "create_session", "description": "Create a new reflection session." },
+    { "name": "update_session", "description": "Update an existing reflection session." }
+  ],
+  "keywords": ["journal", "reflection", "personal", "local-first", "privacy"],
+  "license": "MIT",
+  "privacy_policies": [],
+  "compatibility": {
+    "claude_desktop": ">=0.10.0",
+    "platforms": ["darwin", "win32"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  },
+  "user_config": {
+    "data_directory": {
+      "type": "directory",
+      "title": "Folder na dane dziennika",
+      "description": "Gdzie mają być zapisywane Twoje sesje (pliki .md) i indeks wyszukiwania. Wybierz zwykły folder na dysku, np. w Dokumentach - nie musi to być folder tej wtyczki.",
+      "required": true,
+      "default": "${DOCUMENTS}/Personal Reflection Bridge - dane"
+    }
+  }
+}
