@@ -22,12 +22,22 @@ const store = new LocalMarkdownSessionStore({
   categories: contract.categories
 });
 
+// Files Claude is allowed to overwrite via update_workspace_instructions - these are the ones
+// meant to change through conversation (facts, boundaries, the daily log).
 const WORKSPACE_INSTRUCTION_FILES = ["CLAUDE.md", "GLOSY.md", "WZORCE.md", "DZIENNIK.md"];
+// Extra files get_workspace_instructions also returns, read-only. WYWIAD-STARTOWY.md is a fixed
+// question bank a workspace's own CLAUDE.md may reference and instruct Claude to read (as Aga's
+// does) - it must be readable the same way as the four files above, or a client with no other
+// filesystem access (i.e. not Cowork) can never see it at all, even though CLAUDE.md tells it to.
+// Not included in WORKSPACE_INSTRUCTION_FILES/update_workspace_instructions on purpose: this is a
+// template Claude should read and act on, not one it should rewrite.
+const WORKSPACE_READONLY_EXTRA_FILES = ["WYWIAD-STARTOWY.md"];
+const WORKSPACE_READABLE_FILES = [...WORKSPACE_INSTRUCTION_FILES, ...WORKSPACE_READONLY_EXTRA_FILES];
 
 const tools = [
   {
     name: "get_workspace_instructions",
-    description: "Returns this workspace's operating instructions (CLAUDE.md, GLOSY.md, WZORCE.md, DZIENNIK.md, whichever exist) plus the current local server time. Call this first, before any other tool, at the start of every conversation. In plain Chat there is no automatic way to see these files or the real clock - unlike Cowork or other folder-connected clients, which inject them automatically - so this tool is the only path to them there. Harmless to call again even where instructions are already in context.",
+    description: "Returns this workspace's operating instructions (CLAUDE.md, GLOSY.md, WZORCE.md, DZIENNIK.md, and WYWIAD-STARTOWY.md if present) plus the current local server time. Call this first, before any other tool, at the start of every conversation. In plain Chat there is no automatic way to see these files or the real clock - unlike Cowork or other folder-connected clients, which inject them automatically - so this tool is the only path to them there. Harmless to call again even where instructions are already in context.",
     inputSchema: { type: "object", properties: {} }
   },
   {
@@ -142,7 +152,7 @@ function textResult(value) {
 }
 function readWorkspaceInstructions() {
   const instructions = {};
-  for (const name of WORKSPACE_INSTRUCTION_FILES) {
+  for (const name of WORKSPACE_READABLE_FILES) {
     const filePath = path.join(root, name);
     instructions[name] = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
   }
