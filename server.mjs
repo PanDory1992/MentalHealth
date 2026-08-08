@@ -16,6 +16,11 @@ const store = new LocalMarkdownSessionStore({
 
 const tools = [
   {
+    name: "get_workspace_instructions",
+    description: "Returns this workspace's operating instructions (CLAUDE.md, GLOSY.md, WZORCE.md, DZIENNIK.md, whichever exist) plus the current local server time. Call this first, before any other tool, at the start of every conversation. In plain Chat there is no automatic way to see these files or the real clock - unlike Cowork or other folder-connected clients, which inject them automatically - so this tool is the only path to them there. Harmless to call again even where instructions are already in context.",
+    inputSchema: { type: "object", properties: {} }
+  },
+  {
     name: "list_sessions",
     description: "List session summaries from the local index, newest first. Dates are ISO 8601; before/after are exclusive.",
     inputSchema: {
@@ -91,6 +96,7 @@ function sessionFieldSchema({ includeId, includeBody, includeDate = true }) {
 
 function callTool(name, args) {
   switch (name) {
+    case "get_workspace_instructions": return textResult(readWorkspaceInstructions());
     case "list_sessions": return textResult(store.listSessions(args));
     case "get_session": {
       const entry = store.getSession(args.id);
@@ -109,6 +115,22 @@ function callTool(name, args) {
 }
 function textResult(value) {
   return { content: [{ type: "text", text: JSON.stringify(value, null, 2) }] };
+}
+function readWorkspaceInstructions() {
+  const files = ["CLAUDE.md", "GLOSY.md", "WZORCE.md", "DZIENNIK.md"];
+  const instructions = {};
+  for (const name of files) {
+    const filePath = path.join(root, name);
+    instructions[name] = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf8") : null;
+  }
+  return { server_time: formatServerLocalIso(new Date()), instructions };
+}
+function formatServerLocalIso(source) {
+  const pad = (value, width = 2) => String(value).padStart(width, "0");
+  const offsetMinutes = -source.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteOffset = Math.abs(offsetMinutes);
+  return `${source.getFullYear()}-${pad(source.getMonth() + 1)}-${pad(source.getDate())}T${pad(source.getHours())}:${pad(source.getMinutes())}:${pad(source.getSeconds())}${sign}${pad(Math.floor(absoluteOffset / 60))}:${pad(absoluteOffset % 60)}`;
 }
 function response(id, result) { return { jsonrpc: "2.0", id, result }; }
 function errorResponse(id, error) {
